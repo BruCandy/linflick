@@ -52,6 +52,12 @@ static void draw123Key(cairo_t *cr, const KeyDef& key, double x, double y, doubl
     }
 }
 
+static void drawModifyKey(cairo_t *cr, double x, double y) {
+    double half_h = KEY_H / 2.0;
+    pangoDrawText(cr, "゛゜", x + 7, y + 8, KEY_W, half_h, 13);
+    pangoDrawText(cr, "小", x, y + half_h - 8, KEY_W, half_h, 11);
+}
+
 static void drawCallout(cairo_t *cr, double kx, double ky, KeyDef key, FlickDir d) {
     if (d == CENTER) return;
 
@@ -252,7 +258,16 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
             ) {
                 draw123Key(cr, key, x, y, KEY_W, KEY_H);
             } else {
-                pangoDrawText(cr, key.label, x, y, KEY_W, label_h, key.font_size);
+                const char *label = key.label;
+                if (!app.text.empty() && app.mode == MODE_HIRAGANA) {
+                    if (key.type == SPACE) {
+                        label = "変換";
+                    } else if (key.chars[CENTER] && key.chars[CENTER][0] == ACT_DAKUTEN[0]) {
+                        drawModifyKey(cr, x, y);
+                        continue;
+                    }
+                }
+                pangoDrawText(cr, label, x, y, KEY_W, label_h, key.font_size);
             }
         }
     }

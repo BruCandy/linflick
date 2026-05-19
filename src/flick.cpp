@@ -47,7 +47,7 @@ void applyKey(int row, int col, FlickDir dir) {
     } else if (ch[0] == ACT_MODE_123[0]) {
         app.mode = MODE_123;
     } else {
-        app.text += ch;
+        app.text = ch;
         uinputSendChar(utf8ToCp(std::string(ch)));
     }
 }
