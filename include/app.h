@@ -7,9 +7,13 @@
 // gtk
 #include <gtk/gtk.h>
 
+// original
+#include "keys.h"
+
 
 struct AppState {
     std::string  text;
+    KeyMode      mode;
     bool         pressing   = false;
     int          press_row  = -1;
     int          press_col  = -1;

@@ -11,11 +11,16 @@
 #include "uinput_dev.h"
 
 
+static bool isMergedEnter(int row, int col) {
+    return col == COLS - 1 && (row == ROWS - 2 || row == ROWS - 1);
+}
+
 static bool isInKey(double ex, double ey, int row, int col) {
     double kx = col * KEY_W;
     double ky = row * KEY_H + TOP_OFFSET;
+    double kh = (row == ROWS - 2 && col == COLS - 1) ? 2 * KEY_H : KEY_H;
     return ex >= kx + 3 && ex <= kx + KEY_W - 3 &&
-           ey >= ky + 3 && ey <= ky + KEY_H - 3;
+           ey >= ky + 3 && ey <= ky + kh - 3;
 }
 
 static void roundedRect(cairo_t *cr, double x, double y, double w, double h, double r) {
@@ -29,6 +34,22 @@ static void roundedRect(cairo_t *cr, double x, double y, double w, double h, dou
     cairo_line_to(cr, x, y + r);
     cairo_arc(cr, x + r, y + r, r, M_PI, 3*M_PI/2);
     cairo_close_path(cr);
+}
+
+static void draw123Key(cairo_t *cr, const KeyDef& key, double x, double y, double box_w, double box_h) {
+    const double sw = box_w / 3.0;
+    const double sh = box_h / 3.0;
+    struct { FlickDir dir; double col; double row; int fs; } slots[] = {
+        { CENTER, 1   , 0.7, 16 },
+        { LEFT,   0.55, 1.7, 10 },
+        { UP,     1   , 1.7, 10 },
+        { RIGHT,  1.45, 1.7, 10 },
+    };
+    for (auto& s : slots) {
+        const char *ch = key.chars[s.dir];
+        if (!ch) continue;
+        pangoDrawText(cr, ch, x + s.col * sw, y + s.row * sh, sw, sh, s.fs);
+    }
 }
 
 static void drawCallout(cairo_t *cr, double kx, double ky, KeyDef key, FlickDir d) {
@@ -131,6 +152,7 @@ gboolean onButtonPress(GtkWidget *widget, GdkEventButton *event, gpointer) {
     if (event->button != 1) return FALSE;
     int col = (int)(event->x / KEY_W);
     int row = (int)((event->y - TOP_OFFSET) / KEY_H);
+    if (isMergedEnter(row, col)) row = ROWS - 2;
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return FALSE;
     if (!isInKey(event->x, event->y, row, col)) return FALSE;
 
@@ -148,6 +170,7 @@ gboolean onButtonPress(GtkWidget *widget, GdkEventButton *event, gpointer) {
 gboolean onMotion(GtkWidget *widget, GdkEventMotion *event, gpointer) {
     int col = (int)(event->x / KEY_W);
     int row = (int)((event->y - TOP_OFFSET) / KEY_H);
+    if (isMergedEnter(row, col)) row = ROWS - 2;
     int new_hover_row = (row >= 0 && row < ROWS && col >= 0 && col < COLS
                         && isInKey(event->x, event->y, row, col))
                         ? row : -1;
@@ -196,29 +219,46 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
 
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
+            if (r == ROWS - 1 && c == COLS - 1) continue;
+
             double x = c * KEY_W;
             double y = r * KEY_H + TOP_OFFSET;
+            bool merged = (r == ROWS - 2 && c == COLS - 1);
             bool pressed = (app.pressing && (app.press_row == r) && (app.press_col == c));
-
             bool hovered = (app.hover_row == r && app.hover_col == c);
+            const KeyDef key = keysForMode(app.mode)[r][c];
+
+            static const char* modes[] = {ACT_MODE_HIRA, ACT_MODE_ABC, ACT_MODE_123};
+            bool isCurrentMode = key.chars[CENTER] && key.chars[CENTER][0] == modes[app.mode][0];
             if (pressed) {
                 cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
+            } else if (isCurrentMode) {
+                cairo_set_source_rgb(cr, 0.83, 0.83, 0.83);
             } else if (hovered) {
                 cairo_set_source_rgb(cr, 0.88, 0.93, 1.0);
             } else {
                 cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
             }
-            roundedRect(cr, x+3, y+3, KEY_W-6, KEY_H-6, 10);
+            double kh = merged ? (2 * KEY_H - 6) : (KEY_H - 6);
+            roundedRect(cr, x+3, y+3, KEY_W-6, kh, 10);
             cairo_fill(cr);
 
-            const KeyDef &key = KEYS[r][c];
             cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
-            pangoDrawText(cr, key.label, x, y, KEY_W, KEY_H, key.font_size);
+            double label_h = merged ? 2 * KEY_H : KEY_H;
+            if (app.mode  == MODE_123 &&
+                key.type  == NORMAL   &&
+                key.label != "()[]"   &&
+                key.label != ".,-/"
+            ) {
+                draw123Key(cr, key, x, y, KEY_W, KEY_H);
+            } else {
+                pangoDrawText(cr, key.label, x, y, KEY_W, label_h, key.font_size);
+            }
         }
     }
 
     if (app.pressing) {
-        const KeyDef key = KEYS[app.press_row][app.press_col];
+        const KeyDef key = keysForMode(app.mode)[app.press_row][app.press_col];
         const char *ch = key.chars[live_dir];
         if (ch && ch != ACT_BACKSPACE && ch != ACT_DAKUTEN && ch != ACT_HANDAKUTEN && ch != ACT_SMALL) {
             double kx = app.press_col * KEY_W + KEY_W / 2.0;

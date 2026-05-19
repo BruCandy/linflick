@@ -23,23 +23,29 @@ static void sendModifierResult(const std::string& old_text) {
 
 void applyKey(int row, int col, FlickDir dir) {
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
-    const char *ch = KEYS[row][col].chars[dir];
+    const char *ch = keysForMode(app.mode)[row][col].chars[dir];
     if (!ch) return;
 
     std::string old_text = app.text;
 
-    if (ch == ACT_BACKSPACE) {
+    if (ch[0] == ACT_BACKSPACE[0]) {
         app.text = utf8RemoveLast(app.text);
         uinputSendBackspace();
-    } else if (ch == ACT_DAKUTEN) {
+    } else if (ch[0] == ACT_DAKUTEN[0]) {
         app.text = applyDakuten(app.text);
         sendModifierResult(old_text);
-    } else if (ch == ACT_HANDAKUTEN) {
+    } else if (ch[0] == ACT_HANDAKUTEN[0]) {
         app.text = applyHandakuten(app.text);
         sendModifierResult(old_text);
-    } else if (ch == ACT_SMALL) {
+    } else if (ch[0] == ACT_SMALL[0]) {
         app.text = applySmall(app.text);
         sendModifierResult(old_text);
+    } else if (ch[0] == ACT_MODE_HIRA[0]) {
+        app.mode = MODE_HIRAGANA;
+    } else if (ch[0] == ACT_MODE_ABC[0]) {
+        app.mode = MODE_ABC;
+    } else if (ch[0] == ACT_MODE_123[0]) {
+        app.mode = MODE_123;
     } else {
         app.text += ch;
         uinputSendChar(utf8ToCp(std::string(ch)));
