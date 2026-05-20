@@ -199,7 +199,7 @@ bool uinputInit() {
     }
 
     struct uinput_user_dev uidev = {0};
-    std::snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "wiikey");
+    std::snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "LinFlick");
     uidev.id.bustype = BUS_USB;
     uidev.id.vendor  = 0x1234;
     uidev.id.product = 0x5678;

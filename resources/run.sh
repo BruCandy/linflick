@@ -3,9 +3,9 @@ DIR=$(cd "$(dirname "$0")/.." && pwd)
 BUILD="$DIR/build"
 
 cd "$BUILD"
-if [ -e wiikey ]; then
-    ./wiikey
+if [ -e linflick ]; then
+    ./linflick
 else
-    echo "No wiikey file"
+    echo "No linflick file"
     exit 1
 fi

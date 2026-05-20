@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=LinFlick
+Exec=linflick
+Comment=flick keyboard
+Terminal=false
+Icon=linflick_icon_48
+Type=Application

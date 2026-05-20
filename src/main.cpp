@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     }
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "wiikey");
+    gtk_window_set_title(GTK_WINDOW(window), "LinFlick");
     gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
     gtk_window_set_accept_focus(GTK_WINDOW(window), FALSE);
     gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
