@@ -13,7 +13,8 @@
 
 struct AppState {
     std::string  text;
-    KeyMode      mode;
+    KeyMode      mode   = MODE_HIRAGANA;
+    bool         ime_on = true;
     bool         pressing   = false;
     int          press_row  = -1;
     int          press_col  = -1;

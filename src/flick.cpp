@@ -42,12 +42,28 @@ void applyKey(int row, int col, FlickDir dir) {
         sendModifierResult(old_text);
     } else if (ch[0] == ACT_MODE_HIRA[0]) {
         app.mode = MODE_HIRAGANA;
+        if (!app.ime_on) {
+            uinputToggleIME();
+            app.ime_on = true;
+        }
     } else if (ch[0] == ACT_MODE_ABC[0]) {
         app.mode = MODE_ABC;
+        if (app.ime_on) {
+            uinputToggleIME();
+            app.ime_on = false;
+        }
     } else if (ch[0] == ACT_MODE_123[0]) {
         app.mode = MODE_123;
+        if (app.ime_on) {
+            uinputToggleIME();
+            app.ime_on = false;
+        }
     } else {
         app.text = ch;
-        uinputSendChar(utf8ToCp(std::string(ch)));
+        if (!uinputSendChar(utf8ToCp(std::string(ch)))) {
+            GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+            gtk_clipboard_set_text(cb, ch, -1);
+            uinputSendPaste();
+        }
     }
 }

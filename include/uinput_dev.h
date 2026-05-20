@@ -6,7 +6,9 @@
 
 bool uinputInit();
 void uinputClose();
-void uinputSendChar(uint32_t codepoint);
+bool uinputSendChar(uint32_t codepoint);
 void uinputSendBackspace();
+void uinputSendPaste();
+void uinputToggleIME();
 
 #endif

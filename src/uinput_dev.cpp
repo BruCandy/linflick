@@ -138,20 +138,39 @@ static void emitKey(int code) {
     usleep(5000);
 }
 
-static void sendChar(uint32_t cp) {
+static const int asciiLetterKeys[] = {
+    KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H,
+    KEY_I, KEY_J, KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P,
+    KEY_Q, KEY_R, KEY_S, KEY_T, KEY_U, KEY_V, KEY_W, KEY_X,
+    KEY_Y, KEY_Z
+};
+static const int numberKeys[] = {
+    KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9
+};
+
+static bool sendChar(uint32_t cp) {
     if (cp == 0x0009) {
         emitKey(KEY_TAB);
-        return;
+        return true;
     }
     if (cp == 0x0020 || cp == 0x3000) {
         emitKey(KEY_SPACE);
-        return;
+        return true;
+    }
+    if (cp >= 0x61 && cp <= 0x7A) {
+        emitKey(asciiLetterKeys[cp - 0x61]);
+        return true;
+    }
+    if (cp >= 0x30 && cp <= 0x39) {
+        emitKey(numberKeys[cp - 0x30]);
+        return true;
     }
     auto it = romajiMap().find(cp);
-    if (it == romajiMap().end()) return;
+    if (it == romajiMap().end()) return false;
     for (int k : it->second) {
         emitKey(k);
     }
+    return true;
 }
 
 
@@ -166,11 +185,14 @@ bool uinputInit() {
     ::ioctl(fd, UI_SET_EVBIT, EV_SYN);
 
     const int keys[] = {
-        KEY_A, KEY_B, KEY_D, KEY_E, KEY_G, KEY_H,
-        KEY_I, KEY_K, KEY_M, KEY_N, KEY_O, KEY_P,
-        KEY_R, KEY_S, KEY_T, KEY_U, KEY_W, KEY_X,
+        KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H,
+        KEY_I, KEY_J, KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P,
+        KEY_Q, KEY_R, KEY_S, KEY_T, KEY_U, KEY_V, KEY_W, KEY_X,
         KEY_Y, KEY_Z,
+        KEY_0, KEY_1, KEY_2, KEY_3, KEY_4,
+        KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
         KEY_BACKSPACE, KEY_MINUS, KEY_SPACE, KEY_TAB,
+        KEY_LEFTCTRL, KEY_ZENKAKUHANKAKU,
     };
     for (int k : keys) {
         ::ioctl(fd, UI_SET_KEYBIT, k);
@@ -197,15 +219,37 @@ void uinputClose() {
     }
 }
 
-void uinputSendChar(uint32_t cp) {
-    if (fd < 0) return;
+bool uinputSendChar(uint32_t cp) {
+    if (fd < 0) return false;
     if (cp == CP_BACKSPACE) {
         emitKey(KEY_BACKSPACE);
-        return;
+        return true;
     }
-    sendChar(cp);
+    return sendChar(cp);
 }
 
 void uinputSendBackspace() {
-    uinputSendChar(CP_BACKSPACE);
+    if (fd < 0) return;
+    emitKey(KEY_BACKSPACE);
+}
+
+void uinputToggleIME() {
+    if (fd < 0) return;
+    emitKey(KEY_ZENKAKUHANKAKU);
+}
+
+void uinputSendPaste() {
+    if (fd < 0) return;
+    emit(EV_KEY, KEY_LEFTCTRL, 1);
+    emit(EV_SYN, SYN_REPORT, 0);
+    usleep(5000);
+    emit(EV_KEY, KEY_V, 1);
+    emit(EV_SYN, SYN_REPORT, 0);
+    usleep(5000);
+    emit(EV_KEY, KEY_V, 0);
+    emit(EV_SYN, SYN_REPORT, 0);
+    usleep(5000);
+    emit(EV_KEY, KEY_LEFTCTRL, 0);
+    emit(EV_SYN, SYN_REPORT, 0);
+    usleep(5000);
 }
