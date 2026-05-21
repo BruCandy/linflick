@@ -24,6 +24,8 @@ struct AppState {
     double       cur_y      = 0;
     int          hover_row  = -1;
     int          hover_col  = -1;
+    guint        press_timer = 0;
+    bool         show_candidates  = false;
     GtkWidget   *drawing_area = nullptr;
 };
 

@@ -58,6 +58,90 @@ static void drawModifyKey(cairo_t *cr, double x, double y) {
     pangoDrawText(cr, "小", x, y + half_h - 8, KEY_W, half_h, 11);
 }
 
+static void drawCandidateOutput(cairo_t *cr, int row, int col, const KeyDef& key, FlickDir live_dir) {
+    double W = KEY_W - 6 , H = KEY_H - 6, r = 8;
+
+    struct { FlickDir dir; int dr; int dc; } positions[] = {
+        { UP,     -1,  0 },
+        { LEFT,    0, -1 },
+        { CENTER,  0,  0 },
+        { RIGHT,   0,  1 },
+        { DOWN,    1,  0 },
+    };
+
+    for (auto& p : positions) {
+        const char *ch = key.chars[p.dir];
+        if (!ch || (unsigned char)ch[0] < 0x20) continue;
+        bool selected = (p.dir == live_dir);
+        double bx = (col + p.dc) * KEY_W + 3;
+        double by = (row + p.dr) * KEY_H + 3 + TOP_OFFSET;
+
+        if (selected) {
+            cairo_set_source_rgb(cr, 0.35, 0.55, 0.95);
+        } else {
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        }
+
+        if (p.dir == CENTER) {
+            cairo_new_path(cr);
+            cairo_move_to(cr, bx, by);
+            cairo_line_to(cr, bx + W, by);
+            cairo_line_to(cr, bx + W, by + H);
+            cairo_line_to(cr, bx, by + H);
+            cairo_line_to(cr, bx, by);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+        } else if (p.dir == UP) {
+            cairo_new_path(cr);
+            cairo_move_to(cr, bx + r, by);
+            cairo_line_to(cr, bx + W - r, by);
+            cairo_arc(cr, bx + W - r, by + r, r, -M_PI / 2, 0);
+            cairo_line_to(cr, bx + W, by + H + 6);
+            cairo_line_to(cr, bx, by + H + 6);
+            cairo_line_to(cr, bx, by + r);
+            cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+        } else if (p.dir == LEFT) {
+            cairo_new_path(cr);
+            cairo_move_to(cr, bx + r, by);
+            cairo_line_to(cr, bx + W + 6, by);
+            cairo_line_to(cr, bx + W + 6, by + H);
+            cairo_line_to(cr, bx + r, by + H);
+            cairo_arc(cr, bx + r, by + H - r, r, M_PI/2, M_PI);
+            cairo_line_to(cr, bx, by - r);
+            cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+        } else if (p.dir == RIGHT) {
+            cairo_new_path(cr);
+            cairo_move_to(cr, bx - 6, by);
+            cairo_line_to(cr, bx + W - r, by);
+            cairo_arc(cr, bx + W - r, by + r, r, -M_PI/2, 0);
+            cairo_line_to(cr, bx + W, by + H - r);
+            cairo_arc(cr, bx + W - r, by + H - r, r, 0, M_PI/2);
+            cairo_line_to(cr, bx - 6, by + H);
+            cairo_line_to(cr, bx - 6, by);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+        } else if (p.dir == DOWN) {
+            cairo_new_path(cr);
+            cairo_move_to(cr, bx, by - 6);
+            cairo_line_to(cr, bx + W, by - 6);
+            cairo_line_to(cr, bx + W, by + H - r);
+            cairo_arc(cr, bx + W - r, by + H - r, r, 0, M_PI/2);
+            cairo_line_to(cr, bx + r, by + H);
+            cairo_arc(cr, bx + r, by + H - r, r,  M_PI/2, M_PI);
+            cairo_line_to(cr, bx, by - 6);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+        }
+
+        cairo_set_source_rgb(cr, 0, 0, 0);
+        pangoDrawText(cr, ch, bx, by, W, H, key.font_size);
+    }
+}
+
 static void drawCallout(cairo_t *cr, double kx, double ky, KeyDef key, FlickDir d) {
     if (d == CENTER) return;
 
@@ -154,6 +238,13 @@ void pangoDrawText(cairo_t *cr, const char *text, double x, double y,
     g_object_unref(layout);
 }
 
+static gboolean onLongPressTimeout(gpointer data) {
+    app.press_timer = 0;
+    app.show_candidates  = true;
+    gtk_widget_queue_draw(GTK_WIDGET(data));
+    return G_SOURCE_REMOVE;
+}
+
 gboolean onButtonPress(GtkWidget *widget, GdkEventButton *event, gpointer) {
     if (event->button != 1) return FALSE;
     int col = (int)(event->x / KEY_W);
@@ -162,13 +253,15 @@ gboolean onButtonPress(GtkWidget *widget, GdkEventButton *event, gpointer) {
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return FALSE;
     if (!isInKey(event->x, event->y, row, col)) return FALSE;
 
-    app.pressing  = true;
-    app.press_row = row;
-    app.press_col = col;
-    app.press_x   = event->x;
-    app.press_y   = event->y;
-    app.cur_x     = event->x;
-    app.cur_y     = event->y;
+    app.pressing        = true;
+    app.press_row       = row;
+    app.press_col       = col;
+    app.press_x         = event->x;
+    app.press_y         = event->y;
+    app.cur_x           = event->x;
+    app.cur_y           = event->y;
+    app.show_candidates = false;
+    app.press_timer = g_timeout_add(400, onLongPressTimeout, widget);
     gtk_widget_queue_draw(widget);
     return TRUE;
 }
@@ -190,6 +283,14 @@ gboolean onMotion(GtkWidget *widget, GdkEventMotion *event, gpointer) {
     if (!app.pressing) return FALSE;
     app.cur_x = event->x;
     app.cur_y = event->y;
+    if (app.press_timer) {
+        double dx = event->x - app.press_x;
+        double dy = event->y - app.press_y;
+        if (getDirection(dx, dy) != CENTER) {
+            g_source_remove(app.press_timer);
+            app.press_timer = 0;
+        }
+    }
     gtk_widget_queue_draw(widget);
     return TRUE;
 }
@@ -203,12 +304,17 @@ gboolean onLeaveNotify(GtkWidget *widget, GdkEventCrossing*, gpointer) {
 
 gboolean onButtonRelease(GtkWidget *widget, GdkEventButton *event, gpointer) {
     if (!app.pressing || event->button != 1) return FALSE;
+    if (app.press_timer) {
+        g_source_remove(app.press_timer);
+        app.press_timer = 0;
+    }
     double dx = event->x - app.press_x;
     double dy = event->y - app.press_y;
     applyKey(app.press_row, app.press_col, getDirection(dx, dy));
-    app.pressing  = false;
-    app.press_row = -1;
-    app.press_col = -1;
+    app.pressing        = false;
+    app.press_row       = -1;
+    app.press_col       = -1;
+    app.show_candidates = false;
     gtk_widget_queue_draw(widget);
     return TRUE;
 }
@@ -242,6 +348,8 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
                 cairo_set_source_rgb(cr, 0.83, 0.83, 0.83);
             } else if (hovered) {
                 cairo_set_source_rgb(cr, 0.88, 0.93, 1.0);
+            } else if (app.show_candidates) {
+                cairo_set_source_rgb(cr, 0.93, 0.93, 0.93);
             } else {
                 cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
             }
@@ -249,7 +357,12 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
             roundedRect(cr, x+3, y+3, KEY_W-6, kh, 10);
             cairo_fill(cr);
 
-            cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+            if (app.show_candidates) {
+                cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+            } else {
+                cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+            }
+
             double label_h = merged ? 2 * KEY_H : KEY_H;
             if (app.mode  == MODE_123 &&
                 key.type  == NORMAL   &&
@@ -274,11 +387,15 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
 
     if (app.pressing) {
         const KeyDef key = keysForMode(app.mode)[app.press_row][app.press_col];
-        const char *ch = key.chars[live_dir];
-        if (ch && ch != ACT_BACKSPACE && ch != ACT_DAKUTEN && ch != ACT_HANDAKUTEN && ch != ACT_SMALL) {
-            double kx = app.press_col * KEY_W + KEY_W / 2.0;
-            double ky = app.press_row * KEY_H + KEY_H / 2.0 + TOP_OFFSET;
-            drawCallout(cr, kx, ky, key, live_dir);
+        if (app.show_candidates) {
+            drawCandidateOutput(cr, app.press_row, app.press_col, key, live_dir);
+        } else {
+            const char *ch = key.chars[live_dir];
+            if (ch && ch != ACT_BACKSPACE && ch != ACT_DAKUTEN && ch != ACT_HANDAKUTEN && ch != ACT_SMALL) {
+                double kx = app.press_col * KEY_W + KEY_W / 2.0;
+                double ky = app.press_row * KEY_H + KEY_H / 2.0 + TOP_OFFSET;
+                drawCallout(cr, kx, ky, key, live_dir);
+            }
         }
     }
 
