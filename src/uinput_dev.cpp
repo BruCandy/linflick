@@ -192,7 +192,7 @@ bool uinputInit() {
         KEY_0, KEY_1, KEY_2, KEY_3, KEY_4,
         KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
         KEY_BACKSPACE, KEY_MINUS, KEY_SPACE, KEY_TAB,
-        KEY_LEFTCTRL, KEY_ZENKAKUHANKAKU,
+        KEY_LEFTCTRL, KEY_GRAVE,
     };
     for (int k : keys) {
         ::ioctl(fd, UI_SET_KEYBIT, k);
@@ -235,7 +235,14 @@ void uinputSendBackspace() {
 
 void uinputToggleIME() {
     if (fd < 0) return;
-    emitKey(KEY_ZENKAKUHANKAKU);
+    emit(EV_MSC, MSC_SCAN, 0x00070035);
+    emit(EV_KEY, KEY_GRAVE, 1);
+    emit(EV_SYN, SYN_REPORT, 0);
+    usleep(5000);
+    emit(EV_MSC, MSC_SCAN, 0x00070035);
+    emit(EV_KEY, KEY_GRAVE, 0);
+    emit(EV_SYN, SYN_REPORT, 0);
+    usleep(5000);
 }
 
 void uinputSendPaste() {
