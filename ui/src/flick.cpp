@@ -14,32 +14,16 @@ FlickDir getDirection(double dx, double dy) {
     return dy < 0 ? UP : DOWN;
 }
 
-static void sendModifierResult(const std::string& old_text) {
-    if (app.text == old_text) return;
-    uinputDev.sendBackspace();
-    size_t pos = utf8LastCharStart(app.text);
-    uinputDev.sendChar(utf8ToCp(app.text, pos));
-}
-
 void applyKey(int row, int col, FlickDir dir) {
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
     const char *ch = keysForMode(app.mode)[row][col].chars[dir];
     if (!ch) return;
 
-    std::string old_text = app.text;
+    uint32_t old_cp = app.text;
 
     if (ch[0] == ACT_BACKSPACE[0]) {
-        app.text = utf8RemoveLast(app.text);
+        app.text = 0;
         uinputDev.sendBackspace();
-    } else if (ch[0] == ACT_DAKUTEN[0]) {
-        app.text = applyDakuten(app.text);
-        sendModifierResult(old_text);
-    } else if (ch[0] == ACT_HANDAKUTEN[0]) {
-        app.text = applyHandakuten(app.text);
-        sendModifierResult(old_text);
-    } else if (ch[0] == ACT_SMALL[0]) {
-        app.text = applySmall(app.text);
-        sendModifierResult(old_text);
     } else if (ch[0] == ACT_MODE_HIRA[0]) {
         app.mode = MODE_HIRAGANA;
         if (!app.ime_on) {
@@ -58,9 +42,18 @@ void applyKey(int row, int col, FlickDir dir) {
             uinputDev.toggleIME();
             app.ime_on = false;
         }
+    } else if (ch[0] == ACT_MODIFY[0]) {
+        uint32_t new_cp = (app.mode == MODE_ABC)
+            ? modifyABC(app.text)
+            : modifyHIRAGANA(app.text);
+        if (new_cp != app.text) {
+            app.text = new_cp;
+            uinputDev.sendBackspace();
+            uinputDev.sendChar(app.text);
+        }
     } else {
-        app.text = ch;
-        if (!uinputDev.sendChar(utf8ToCp(std::string(ch)))) {
+        app.text = utf8ToCp(ch);
+        if (!uinputDev.sendChar(app.text)) {
             GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
             gtk_clipboard_set_text(cb, ch, -1);
             uinputDev.sendPaste();

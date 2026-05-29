@@ -3,50 +3,69 @@
 
 // original
 #include "modifier.h"
-#include "utf8.h"
 
 
-static std::string transformLast(const std::string& text,
-                                  const std::map<uint32_t, uint32_t>& table) {
-    if (text.empty()) return text;
-    size_t pos = utf8LastCharStart(text);
-    uint32_t cp = utf8ToCp(text, pos);
-    auto it = table.find(cp);
-    if (it == table.end()) return text;
-    return text.substr(0, pos) + cpToUtf8(it->second);
+static uint32_t lookupNext(uint32_t cp, const std::map<uint32_t, uint32_t>& tbl) {
+    auto it = tbl.find(cp);
+    return (it != tbl.end()) ? it->second : cp;
 }
 
-std::string applyDakuten(const std::string& text) {
+uint32_t modifyHIRAGANA(uint32_t cp) {
     static const std::map<uint32_t, uint32_t> tbl = {
-        {0x304B,0x304C},{0x304D,0x304E},{0x304F,0x3050},{0x3051,0x3052},{0x3053,0x3054},
-        {0x3055,0x3056},{0x3057,0x3058},{0x3059,0x305A},{0x305B,0x305C},{0x305D,0x305E},
-        {0x305F,0x3060},{0x3061,0x3062},{0x3064,0x3065},{0x3066,0x3067},{0x3068,0x3069},
-        {0x306F,0x3070},{0x3072,0x3073},{0x3075,0x3076},{0x3078,0x3079},{0x307B,0x307C},
-        {0x304C,0x304B},{0x304E,0x304D},{0x3050,0x304F},{0x3052,0x3051},{0x3054,0x3053},
-        {0x3056,0x3055},{0x3058,0x3057},{0x305A,0x3059},{0x305C,0x305B},{0x305E,0x305D},
-        {0x3060,0x305F},{0x3062,0x3061},{0x3065,0x3064},{0x3067,0x3066},{0x3069,0x3068},
-        {0x3070,0x306F},{0x3073,0x3072},{0x3076,0x3075},{0x3079,0x3078},{0x307C,0x307B},
+        {U'あ', U'ぁ'}, {U'ぁ', U'あ'},
+        {U'い', U'ぃ'}, {U'ぃ', U'い'},
+        {U'う', U'ぅ'}, {U'ぅ', U'ゔ'}, {U'ゔ', U'う'},
+        {U'え', U'ぇ'}, {U'ぇ', U'え'},
+        {U'お', U'ぉ'}, {U'ぉ', U'お'},
+
+        {U'か', U'が'}, {U'が', U'か'},
+        {U'き', U'ぎ'}, {U'ぎ', U'き'},
+        {U'く', U'ぐ'}, {U'ぐ', U'く'},
+        {U'け', U'げ'}, {U'げ', U'け'},
+        {U'こ', U'ご'}, {U'ご', U'こ'},
+
+        {U'さ', U'ざ'}, {U'ざ', U'さ'},
+        {U'し', U'じ'}, {U'じ', U'し'},
+        {U'す', U'ず'}, {U'ず', U'す'},
+        {U'せ', U'ぜ'}, {U'ぜ', U'せ'},
+        {U'そ', U'ぞ'}, {U'ぞ', U'そ'},
+
+        {U'た', U'だ'}, {U'だ', U'た'},
+        {U'ち', U'ぢ'}, {U'ぢ', U'ち'},
+        {U'つ', U'っ'}, {U'っ', U'づ'}, {U'づ', U'つ'},
+        {U'て', U'で'}, {U'で', U'て'},
+        {U'と', U'ど'}, {U'ど', U'と'},
+
+        {U'は', U'ば'}, {U'ば', U'ぱ'}, {U'ぱ', U'は'},
+        {U'ひ', U'び'}, {U'び', U'ぴ'}, {U'ぴ', U'ひ'},
+        {U'ふ', U'ぶ'}, {U'ぶ', U'ぷ'}, {U'ぷ', U'ふ'},
+        {U'へ', U'べ'}, {U'べ', U'ぺ'}, {U'ぺ', U'へ'},
+        {U'ほ', U'ぼ'}, {U'ぼ', U'ぽ'}, {U'ぽ', U'ほ'},
+
+        {U'や', U'ゃ'}, {U'ゃ', U'や'},
+        {U'ゆ', U'ゅ'}, {U'ゅ', U'ゆ'},
+        {U'よ', U'ょ'}, {U'ょ', U'よ'},
+
+        {U'わ', U'ゎ'}, {U'ゎ', U'わ'},
     };
-    return transformLast(text, tbl);
+    return lookupNext(cp, tbl);
 }
 
-std::string applyHandakuten(const std::string& text) {
+uint32_t modifyABC(uint32_t cp) {
     static const std::map<uint32_t, uint32_t> tbl = {
-        {0x306F,0x3071},{0x3072,0x3074},{0x3075,0x3077},{0x3078,0x307A},{0x307B,0x307D},
-        {0x3070,0x3071},{0x3073,0x3074},{0x3076,0x3077},{0x3079,0x307A},{0x307C,0x307D},
-        {0x3071,0x306F},{0x3074,0x3072},{0x3077,0x3075},{0x307A,0x3078},{0x307D,0x307B},
+        {U'a',U'A'},{U'A',U'a'}, {U'b',U'B'},{U'B',U'b'},
+        {U'c',U'C'},{U'C',U'c'}, {U'd',U'D'},{U'D',U'd'},
+        {U'e',U'E'},{U'E',U'e'}, {U'f',U'F'},{U'F',U'f'},
+        {U'g',U'G'},{U'G',U'g'}, {U'h',U'H'},{U'H',U'h'},
+        {U'i',U'I'},{U'I',U'i'}, {U'j',U'J'},{U'J',U'j'},
+        {U'k',U'K'},{U'K',U'k'}, {U'l',U'L'},{U'L',U'l'},
+        {U'm',U'M'},{U'M',U'm'}, {U'n',U'N'},{U'N',U'n'},
+        {U'o',U'O'},{U'O',U'o'}, {U'p',U'P'},{U'P',U'p'},
+        {U'q',U'Q'},{U'Q',U'q'}, {U'r',U'R'},{U'R',U'r'},
+        {U's',U'S'},{U'S',U's'}, {U't',U'T'},{U'T',U't'},
+        {U'u',U'U'},{U'U',U'u'}, {U'v',U'V'},{U'V',U'v'},
+        {U'w',U'W'},{U'W',U'w'}, {U'x',U'X'},{U'X',U'x'},
+        {U'y',U'Y'},{U'Y',U'y'}, {U'z',U'Z'},{U'Z',U'z'},
     };
-    return transformLast(text, tbl);
-}
-
-std::string applySmall(const std::string& text) {
-    static const std::map<uint32_t, uint32_t> tbl = {
-        {0x3042,0x3041},{0x3044,0x3043},{0x3046,0x3045},{0x3048,0x3047},{0x304A,0x3049},
-        {0x3084,0x3083},{0x3086,0x3085},{0x3088,0x3087},
-        {0x3064,0x3063},{0x308F,0x308E},
-        {0x3041,0x3042},{0x3043,0x3044},{0x3045,0x3046},{0x3047,0x3048},{0x3049,0x304A},
-        {0x3083,0x3084},{0x3085,0x3086},{0x3087,0x3088},
-        {0x3063,0x3064},{0x308E,0x308F},
-    };
-    return transformLast(text, tbl);
+    return lookupNext(cp, tbl);
 }

@@ -69,6 +69,7 @@ static const std::unordered_map<uint32_t, std::vector<int>>& romajiMap() {
         {0x308F, {KEY_W, KEY_A}},
         {0x3092, {KEY_W, KEY_O}},
         {0x3093, {KEY_N, KEY_N}},
+        {0x3094, {KEY_V, KEY_U}},
 
         {0x3041, {KEY_X, KEY_A}},
         {0x3043, {KEY_X, KEY_I}},

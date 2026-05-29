@@ -2,7 +2,7 @@
 #define APP_H
 
 
-#include <string>
+#include <cstdint>
 
 // gtk
 #include <gtk/gtk.h>
@@ -12,7 +12,7 @@
 
 
 struct AppState {
-    std::string  text;
+    uint32_t     text = 0;
     KeyMode      mode   = MODE_HIRAGANA;
     bool         ime_on = true;
     bool         pressing   = false;

@@ -372,10 +372,10 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
                 draw123Key(cr, key, x, y, KEY_W, KEY_H);
             } else {
                 const char *label = key.label;
-                if (!app.text.empty() && app.mode == MODE_HIRAGANA) {
+                if (app.text != 0 && app.mode == MODE_HIRAGANA) {
                     if (key.type == SPACE) {
                         label = "変換";
-                    } else if (key.chars[CENTER] && key.chars[CENTER][0] == ACT_DAKUTEN[0]) {
+                    } else if (key.chars[CENTER] && key.chars[CENTER][0] == ACT_MODIFY[0]) {
                         drawModifyKey(cr, x, y);
                         continue;
                     }
@@ -391,7 +391,7 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
             drawCandidateOutput(cr, app.press_row, app.press_col, key, live_dir);
         } else {
             const char *ch = key.chars[live_dir];
-            if (ch && ch != ACT_BACKSPACE && ch != ACT_DAKUTEN && ch != ACT_HANDAKUTEN && ch != ACT_SMALL) {
+            if (ch && ch != ACT_MODIFY) {
                 double kx = app.press_col * KEY_W + KEY_W / 2.0;
                 double ky = app.press_row * KEY_H + KEY_H / 2.0 + TOP_OFFSET;
                 drawCallout(cr, kx, ky, key, live_dir);
@@ -407,6 +407,6 @@ void onTabClicked(GtkButton*, gpointer) {
 }
 
 void onSpaceClicked(GtkButton*, gpointer) {
-    app.text += "　";
+    app.text = 0;
     uinputDev.sendChar(0x0020);
 }

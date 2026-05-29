@@ -10,15 +10,13 @@ static const int FLICK_THRESHOLD = 20;
 static const int TOP_OFFSET      = 50;
 
 inline const char* const ACT_BACKSPACE  = "\x01";
-inline const char* const ACT_DAKUTEN    = "\x02";
-inline const char* const ACT_HANDAKUTEN = "\x03";
-inline const char* const ACT_SMALL      = "\x04";
-inline const char* const ACT_SPACE      = "\x05";
-inline const char* const ACT_MODE_HIRA  = "\x06";
-inline const char* const ACT_MODE_ABC   = "\x07";
-inline const char* const ACT_MODE_123   = "\x08";
-inline const char* const ACT_ENTER      = "\x09";
-inline const char* const ACT_WINDOW     = "\x0a";
+inline const char* const ACT_SPACE      = "\x02";
+inline const char* const ACT_MODE_HIRA  = "\x03";
+inline const char* const ACT_MODE_ABC   = "\x04";
+inline const char* const ACT_MODE_123   = "\x05";
+inline const char* const ACT_ENTER      = "\x06";
+inline const char* const ACT_WINDOW     = "\x07";
+inline const char* const ACT_MODIFY     = "\x08";
 
 enum FlickDir {
     CENTER  = 0,
@@ -74,7 +72,7 @@ inline const KeyDef KEYS_HIRAGANA[ROWS][COLS] = {
     },
     {
         {"◆", {ACT_WINDOW, nullptr, nullptr, nullptr, nullptr}, 13, WINDOW},
-        {"^_^", {ACT_DAKUTEN, ACT_HANDAKUTEN, ACT_SMALL, "ー", "っ"}, 13, NORMAL},
+        {"^_^", {ACT_MODIFY, nullptr, nullptr, nullptr, nullptr}, 13, NORMAL},
         {"わ", {"わ", "を", "ん", "ー", nullptr}, 20, NORMAL},
         {"、。?!", {"、", "。", "？", "！", nullptr}, 13, NORMAL},
         {"→", {ACT_ENTER, nullptr, nullptr, nullptr, nullptr}, 20, ENTER},
@@ -105,7 +103,7 @@ inline const KeyDef KEYS_ABC[ROWS][COLS] = {
     },
     {
         {"◆", {ACT_WINDOW, nullptr, nullptr, nullptr, nullptr}, 13, WINDOW},
-        {"a / A", {nullptr, nullptr, nullptr, nullptr, nullptr}, 13, NORMAL},
+        {"a / A", {ACT_MODIFY, nullptr, nullptr, nullptr, nullptr}, 13, NORMAL},
         {"' \" ( )", {"'", "\"", "(", ")", nullptr}, 13, NORMAL},
         {". , ? !", {".", ",", "?", "!", nullptr}, 13, NORMAL},
         {"→", {ACT_ENTER, nullptr, nullptr, nullptr, nullptr}, 20, ENTER},

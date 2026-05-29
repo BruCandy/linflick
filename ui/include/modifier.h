@@ -2,11 +2,10 @@
 #define MODIFIER_H
 
 
-#include <string>
+#include <cstdint>
 
 
-std::string applyDakuten(const std::string& text);
-std::string applyHandakuten(const std::string& text);
-std::string applySmall(const std::string& text);
+uint32_t modifyHIRAGANA(uint32_t cp);
+uint32_t modifyABC(uint32_t cp);
 
 #endif
