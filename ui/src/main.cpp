@@ -6,12 +6,16 @@
 #include "keys.h"
 #include "ui.h"
 #include "uinput_dev.h"
+#include "ibus_client.h"
 
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
 
     if (!uinputDev.init()) return 1;
+
+    app.ime_on = detectImeOn();
+    app.mode   = app.ime_on ? MODE_HIRAGANA : MODE_ABC;
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "LinFlick");
