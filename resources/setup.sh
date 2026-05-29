@@ -16,3 +16,10 @@ mkdir -p "$ICON_DIR"
 cp "$DIR/../data/theme/index.theme" "$ICON_DIR/index.theme"
 
 gtk-update-icon-cache "$ICON_DIR"
+
+sudo groupadd --system linflick
+sudo usermod -aG linflick $USER
+
+sudo cp ../rules/60-linflick.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger

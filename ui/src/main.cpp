@@ -10,10 +10,8 @@
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-    if (!uinputInit()) {
-        perror("Failed to init uinput");
-        return 0;
-    }
+
+    if (!uinputDev.init()) return 1;
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "LinFlick");
@@ -34,7 +32,6 @@ int main(int argc, char *argv[]) {
 
     gtk_widget_show_all(window);
     gtk_main();
-
-    uinputClose();
+    uinputDev.close();
     return 0;
 }

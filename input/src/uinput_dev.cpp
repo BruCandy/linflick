@@ -12,10 +12,6 @@
 #include "uinput_dev.h"
 
 
-static const uint32_t CP_BACKSPACE = 0x0008;
-
-static int fd = -1;
-
 static const std::unordered_map<uint32_t, std::vector<int>>& romajiMap() {
     static const std::unordered_map<uint32_t, std::vector<int>> m = {
         {0x3042, {KEY_A}},
@@ -120,15 +116,15 @@ static const std::unordered_map<uint32_t, std::vector<int>>& romajiMap() {
     return m;
 }
 
-static void emit(int type, int code, int val) {
+void UinputDev::emit(int type, int code, int val) {
     struct input_event ev{};
     ev.type  = type;
     ev.code  = code;
     ev.value = val;
-    write(fd, &ev, sizeof(ev));
+    write(fd_, &ev, sizeof(ev));
 }
 
-static void emitKey(int code) {
+void UinputDev::emitKey(int code) {
     emit(EV_KEY, code, 1);
     emit(EV_SYN, SYN_REPORT, 0);
     usleep(5000);
@@ -138,33 +134,37 @@ static void emitKey(int code) {
     usleep(5000);
 }
 
-static const int asciiLetterKeys[] = {
-    KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H,
-    KEY_I, KEY_J, KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P,
-    KEY_Q, KEY_R, KEY_S, KEY_T, KEY_U, KEY_V, KEY_W, KEY_X,
-    KEY_Y, KEY_Z
-};
-static const int numberKeys[] = {
-    KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9
-};
+bool UinputDev::sendCharInternal(uint32_t cp) {
+    static const int letterKeys[] = {
+        KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H,
+        KEY_I, KEY_J, KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P,
+        KEY_Q, KEY_R, KEY_S, KEY_T, KEY_U, KEY_V, KEY_W, KEY_X,
+        KEY_Y, KEY_Z
+    };
+    static const int numberKeys[] = {
+        KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9
+    };
 
-static bool sendChar(uint32_t cp) {
     if (cp == 0x0009) {
         emitKey(KEY_TAB);
         return true;
     }
+
     if (cp == 0x0020 || cp == 0x3000) {
         emitKey(KEY_SPACE);
         return true;
     }
+
     if (cp >= 0x61 && cp <= 0x7A) {
-        emitKey(asciiLetterKeys[cp - 0x61]);
+        emitKey(letterKeys[cp - 0x61]);
         return true;
     }
+
     if (cp >= 0x30 && cp <= 0x39) {
         emitKey(numberKeys[cp - 0x30]);
         return true;
     }
+
     auto it = romajiMap().find(cp);
     if (it == romajiMap().end()) return false;
     for (int k : it->second) {
@@ -173,16 +173,15 @@ static bool sendChar(uint32_t cp) {
     return true;
 }
 
-
-bool uinputInit() {
-    fd = ::open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-    if (fd < 0) {
-        perror("uinput: open /dev/uinput");
+bool UinputDev::init() {
+    fd_ = ::open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+    if (fd_ < 0) {
+        perror("uinput: open");
         return false;
     }
 
-    ::ioctl(fd, UI_SET_EVBIT, EV_KEY);
-    ::ioctl(fd, UI_SET_EVBIT, EV_SYN);
+    ::ioctl(fd_, UI_SET_EVBIT, EV_KEY);
+    ::ioctl(fd_, UI_SET_EVBIT, EV_SYN);
 
     const int keys[] = {
         KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H,
@@ -192,49 +191,49 @@ bool uinputInit() {
         KEY_0, KEY_1, KEY_2, KEY_3, KEY_4,
         KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
         KEY_BACKSPACE, KEY_MINUS, KEY_SPACE, KEY_TAB,
-        KEY_LEFTCTRL, KEY_GRAVE,
+        KEY_LEFTCTRL, KEY_V, KEY_GRAVE,
     };
     for (int k : keys) {
-        ::ioctl(fd, UI_SET_KEYBIT, k);
+        ::ioctl(fd_, UI_SET_KEYBIT, k);
     }
 
-    struct uinput_user_dev uidev = {0};
+    struct uinput_user_dev uidev = {};
     std::snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "LinFlick");
     uidev.id.bustype = BUS_USB;
     uidev.id.vendor  = 0x1234;
     uidev.id.product = 0x5678;
     uidev.id.version = 1;
 
-    ::write(fd, &uidev, sizeof(uidev));
-    ::ioctl(fd, UI_DEV_CREATE);
+    ::write(fd_, &uidev, sizeof(uidev));
+    ::ioctl(fd_, UI_DEV_CREATE);
 
     return true;
 }
 
-void uinputClose() {
-    if (fd >= 0) {
-        ioctl(fd, UI_DEV_DESTROY);
-        close(fd);
-        fd = -1;
+void UinputDev::close() {
+    if (fd_ >= 0) {
+        ::ioctl(fd_, UI_DEV_DESTROY);
+        ::close(fd_);
+        fd_ = -1;
     }
 }
 
-bool uinputSendChar(uint32_t cp) {
-    if (fd < 0) return false;
-    if (cp == CP_BACKSPACE) {
+bool UinputDev::sendChar(uint32_t cp) {
+    if (fd_ < 0) return false;
+    if (cp == 0x0008) {
         emitKey(KEY_BACKSPACE);
         return true;
     }
-    return sendChar(cp);
+    return sendCharInternal(cp);
 }
 
-void uinputSendBackspace() {
-    if (fd < 0) return;
+void UinputDev::sendBackspace() {
+    if (fd_ < 0) return;
     emitKey(KEY_BACKSPACE);
 }
 
-void uinputToggleIME() {
-    if (fd < 0) return;
+void UinputDev::toggleIME() {
+    if (fd_ < 0) return;
     emit(EV_MSC, MSC_SCAN, 0x00070035);
     emit(EV_KEY, KEY_GRAVE, 1);
     emit(EV_SYN, SYN_REPORT, 0);
@@ -245,8 +244,8 @@ void uinputToggleIME() {
     usleep(5000);
 }
 
-void uinputSendPaste() {
-    if (fd < 0) return;
+void UinputDev::sendPaste() {
+    if (fd_ < 0) return;
     emit(EV_KEY, KEY_LEFTCTRL, 1);
     emit(EV_SYN, SYN_REPORT, 0);
     usleep(5000);

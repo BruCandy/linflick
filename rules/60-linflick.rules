@@ -1,0 +1,1 @@
+KERNEL=="uinput", GROUP="linflick", MODE="0660"

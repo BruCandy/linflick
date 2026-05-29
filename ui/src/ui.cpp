@@ -403,10 +403,10 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
 }
 
 void onTabClicked(GtkButton*, gpointer) {
-    uinputSendChar(0x0009);
+    uinputDev.sendChar(0x0009);
 }
 
 void onSpaceClicked(GtkButton*, gpointer) {
     app.text += "　";
-    uinputSendChar(0x0020);
+    uinputDev.sendChar(0x0020);
 }

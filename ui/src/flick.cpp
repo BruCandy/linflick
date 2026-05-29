@@ -16,9 +16,9 @@ FlickDir getDirection(double dx, double dy) {
 
 static void sendModifierResult(const std::string& old_text) {
     if (app.text == old_text) return;
-    uinputSendBackspace();
+    uinputDev.sendBackspace();
     size_t pos = utf8LastCharStart(app.text);
-    uinputSendChar(utf8ToCp(app.text, pos));
+    uinputDev.sendChar(utf8ToCp(app.text, pos));
 }
 
 void applyKey(int row, int col, FlickDir dir) {
@@ -30,7 +30,7 @@ void applyKey(int row, int col, FlickDir dir) {
 
     if (ch[0] == ACT_BACKSPACE[0]) {
         app.text = utf8RemoveLast(app.text);
-        uinputSendBackspace();
+        uinputDev.sendBackspace();
     } else if (ch[0] == ACT_DAKUTEN[0]) {
         app.text = applyDakuten(app.text);
         sendModifierResult(old_text);
@@ -43,27 +43,27 @@ void applyKey(int row, int col, FlickDir dir) {
     } else if (ch[0] == ACT_MODE_HIRA[0]) {
         app.mode = MODE_HIRAGANA;
         if (!app.ime_on) {
-            uinputToggleIME();
+            uinputDev.toggleIME();
             app.ime_on = true;
         }
     } else if (ch[0] == ACT_MODE_ABC[0]) {
         app.mode = MODE_ABC;
         if (app.ime_on) {
-            uinputToggleIME();
+            uinputDev.toggleIME();
             app.ime_on = false;
         }
     } else if (ch[0] == ACT_MODE_123[0]) {
         app.mode = MODE_123;
         if (app.ime_on) {
-            uinputToggleIME();
+            uinputDev.toggleIME();
             app.ime_on = false;
         }
     } else {
         app.text = ch;
-        if (!uinputSendChar(utf8ToCp(std::string(ch)))) {
+        if (!uinputDev.sendChar(utf8ToCp(std::string(ch)))) {
             GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
             gtk_clipboard_set_text(cb, ch, -1);
-            uinputSendPaste();
+            uinputDev.sendPaste();
         }
     }
 }
