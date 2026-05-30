@@ -1,0 +1,4 @@
+build/linflick                   usr/bin
+rules/60-linflick.rules          usr/lib/udev/rules.d
+data/icons/linflick.png          usr/share/icons/hicolor/48x48/apps
+data/linflick.desktop            usr/share/applications

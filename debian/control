@@ -1,0 +1,25 @@
+Source: linflick
+Section: utils
+Priority: optional
+Maintainer: BruCandy <brucandy22@gmail.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.28.3),
+ pkg-config,
+ libgtk-3-dev,
+ libpango1.0-dev,
+ libibus-1.0-dev,
+Standards-Version: 4.7.4
+Homepage: https://github.com/BruCandy/linflick
+
+Package: linflick
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ ibus,
+Description: Flick-input virtual keyboard for Linux
+ LinFlick is a flick-input virtual keyboard for Linux.
+ It currently requires an IBus environment to detect the IME state.
