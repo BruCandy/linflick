@@ -82,23 +82,23 @@ inline const KeyDef KEYS_HIRAGANA[ROWS][COLS] = {
 inline const KeyDef KEYS_ABC[ROWS][COLS] = {
     {
         {"☆123", {ACT_MODE_123, nullptr, nullptr, nullptr, nullptr}, 13, MODE},
-        {"@ # / & _", {"@", "#", "/", "&", "_"}, 13, NORMAL},
-        {"A B C", {"A", "B", "C", nullptr, nullptr}, 13, NORMAL},
-        {"D E F", {"D", "E", "F", nullptr, nullptr}, 13, NORMAL},
+        {"@ # / & _", {"@", "#", "/", "&", "_"}, 12, NORMAL},
+        {"A B C", {"a", "b", "c", nullptr, nullptr}, 13, NORMAL},
+        {"D E F", {"d", "e", "f", nullptr, nullptr}, 13, NORMAL},
         {"⌫", {ACT_BACKSPACE, nullptr, nullptr, nullptr, nullptr}, 13, BACKSPACE},
     },
     {
         {"ABC", {ACT_MODE_ABC, nullptr, nullptr, nullptr, nullptr}, 13, MODE},
-        {"G H I", {"G", "H", "I", nullptr, nullptr}, 13, NORMAL},
-        {"J K L", {"J", "K", "L", nullptr, nullptr}, 13, NORMAL},
-        {"M N O", {"M", "N", "O", nullptr, nullptr}, 13, NORMAL},
+        {"G H I", {"g", "h", "i", nullptr, nullptr}, 13, NORMAL},
+        {"J K L", {"j", "k", "l", nullptr, nullptr}, 13, NORMAL},
+        {"M N O", {"m", "n", "o", nullptr, nullptr}, 13, NORMAL},
         {"空白", {ACT_SPACE, nullptr, nullptr, nullptr, nullptr}, 13, SPACE},
     },
     {
         {"あいう", {ACT_MODE_HIRA, nullptr, nullptr, nullptr, nullptr}, 13, MODE},
-        {"P Q R S", {"P", "Q", "R", "S", nullptr}, 13, NORMAL},
-        {"T U V", {"T", "U", "V", nullptr, nullptr}, 13, NORMAL},
-        {"W X Y Z", {"W", "X", "Y", "Z", nullptr}, 13, NORMAL},
+        {"P Q R S", {"p", "q", "r", "s", nullptr}, 13, NORMAL},
+        {"T U V", {"t", "u", "v", nullptr, nullptr}, 13, NORMAL},
+        {"W X Y Z", {"w", "x", "y", "z", nullptr}, 13, NORMAL},
         {"→", {ACT_ENTER, nullptr, nullptr, nullptr, nullptr}, 20, ENTER},
     },
     {
@@ -135,7 +135,7 @@ inline const KeyDef KEYS_123[ROWS][COLS] = {
     {
         {"◆", {ACT_WINDOW, nullptr, nullptr, nullptr, nullptr}, 13, WINDOW},
         {"()[]", {"(", ")", "[", "]", nullptr}, 13, NORMAL},
-        {"0", {"0", "~", "...", nullptr, nullptr}, 20, NORMAL},
+        {"0", {"0", "~", "…", nullptr, nullptr}, 20, NORMAL},
         {".,-/", {".", ",", "-", "/", nullptr}, 13, NORMAL},
         {"→", {ACT_ENTER, nullptr, nullptr, nullptr, nullptr}, 20, ENTER},
     }

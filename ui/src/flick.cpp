@@ -16,7 +16,21 @@ FlickDir getDirection(double dx, double dy) {
 
 void applyKey(int row, int col, FlickDir dir) {
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
-    const char *ch = keysForMode(app.mode)[row][col].chars[dir];
+    const KeyDef& key = keysForMode(app.mode)[row][col];
+
+    if (key.type == SPACE) {
+        if (app.mode == MODE_HIRAGANA && app.text != 0 && dir == UP) {
+            uinputDev.sendArrowUp();
+        } else if (app.mode == MODE_HIRAGANA && app.text != 0 && dir == DOWN) {
+            uinputDev.sendArrowDown();
+        } else if (dir == CENTER) {
+            app.text = 0;
+            uinputDev.sendChar(0x0020);
+        }
+        return;
+    }
+
+    const char *ch = key.chars[dir];
     if (!ch) return;
 
     uint32_t old_cp = app.text;
@@ -42,14 +56,29 @@ void applyKey(int row, int col, FlickDir dir) {
             uinputDev.toggleIME();
             app.ime_on = false;
         }
+    } else if (ch[0] == ACT_WINDOW[0]) {
+        uinputDev.sendWindow();
+    } else if (ch[0] == ACT_SPACE[0]) {
+        app.text = 0;
+        uinputDev.sendChar(0x0020);
+    } else if (ch[0] == ACT_ENTER[0]) {
+        app.text = 0;
+        uinputDev.sendEnter();
     } else if (ch[0] == ACT_MODIFY[0]) {
-        uint32_t new_cp = (app.mode == MODE_ABC)
-            ? modifyABC(app.text)
-            : modifyHIRAGANA(app.text);
-        if (new_cp != app.text) {
-            app.text = new_cp;
-            uinputDev.sendBackspace();
-            uinputDev.sendChar(app.text);
+        if (app.text != 0) {
+            uint32_t new_cp = (app.mode == MODE_ABC)
+                ? modifyABC(app.text)
+                : modifyHIRAGANA(app.text);
+            if (new_cp != app.text) {
+                app.text = new_cp;
+                uinputDev.sendBackspace();
+                uinputDev.sendChar(app.text);
+            }
+        } else if (app.mode == MODE_HIRAGANA) {
+            GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+            const char *ch = "^_^";
+            gtk_clipboard_set_text(cb, ch, -1);
+            uinputDev.sendPaste();
         }
     } else {
         app.text = utf8ToCp(ch);

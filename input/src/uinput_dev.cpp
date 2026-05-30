@@ -146,6 +146,41 @@ bool UinputDev::sendCharInternal(uint32_t cp) {
         KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9
     };
 
+    struct JisKey { int code; bool shift; };
+    static const std::unordered_map<uint32_t, JisKey> jisSymMap = {
+        {0x21, {KEY_1,          true}},
+        {0x22, {KEY_2,          true}},
+        {0x23, {KEY_3,          true}},
+        {0x24, {KEY_4,          true}},
+        {0x25, {KEY_5,          true}},
+        {0x26, {KEY_6,          true}},
+        {0x27, {KEY_7,          true}},
+        {0x28, {KEY_8,          true}},
+        {0x29, {KEY_9,          true}},
+        {0x2A, {KEY_APOSTROPHE, true}},
+        {0x2B, {KEY_SEMICOLON,  true}},
+        {0x2C, {KEY_COMMA,      false}},
+        {0x2D, {KEY_MINUS,      false}},
+        {0x2E, {KEY_DOT,        false}},
+        {0x2F, {KEY_SLASH,      false}},
+        {0x3A, {KEY_APOSTROPHE, false}},
+        {0x3B, {KEY_SEMICOLON,  false}},
+        {0x3C, {KEY_COMMA,      true}},
+        {0x3D, {KEY_MINUS,      true}},
+        {0x3E, {KEY_DOT,        true}},
+        {0x3F, {KEY_SLASH,      true}},
+        {0x40, {KEY_LEFTBRACE,  false}},
+        {0x5B, {KEY_RIGHTBRACE, false}},
+        {0x5C, {KEY_RO,         false}},
+        {0x5D, {KEY_BACKSLASH,  false}},
+        {0x5E, {KEY_EQUAL,      false}},
+        {0x5F, {KEY_RO,         true}},
+        {0x7B, {KEY_RIGHTBRACE, true}},
+        {0x7C, {KEY_YEN,        true}},
+        {0x7D, {KEY_BACKSLASH,  true}},
+        {0x7E, {KEY_EQUAL,      true}},
+    };
+
     if (cp == 0x0009) {
         emitKey(KEY_TAB);
         return true;
@@ -156,13 +191,41 @@ bool UinputDev::sendCharInternal(uint32_t cp) {
         return true;
     }
 
+    if (cp == 0x0008) {
+        emitKey(KEY_BACKSPACE);
+        return true;
+    }
+
     if (cp >= 0x61 && cp <= 0x7A) {
         emitKey(letterKeys[cp - 0x61]);
         return true;
     }
 
+    if (cp >= 0x41 && cp <= 0x5A) {
+        emit(EV_KEY, KEY_LEFTSHIFT, 1);
+        emit(EV_SYN, SYN_REPORT, 0);
+        emitKey(letterKeys[cp - 0x41]);
+        emit(EV_KEY, KEY_LEFTSHIFT, 0);
+        emit(EV_SYN, SYN_REPORT, 0);
+        return true;
+    }
+
     if (cp >= 0x30 && cp <= 0x39) {
         emitKey(numberKeys[cp - 0x30]);
+        return true;
+    }
+
+    auto jit = jisSymMap.find(cp);
+    if (jit != jisSymMap.end()) {
+        if (jit->second.shift) {
+            emit(EV_KEY, KEY_LEFTSHIFT, 1);
+            emit(EV_SYN, SYN_REPORT, 0);
+            emitKey(jit->second.code);
+            emit(EV_KEY, KEY_LEFTSHIFT, 0);
+            emit(EV_SYN, SYN_REPORT, 0);
+        } else {
+            emitKey(jit->second.code);
+        }
         return true;
     }
 
@@ -192,7 +255,11 @@ bool UinputDev::init() {
         KEY_0, KEY_1, KEY_2, KEY_3, KEY_4,
         KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
         KEY_BACKSPACE, KEY_MINUS, KEY_SPACE, KEY_TAB,
-        KEY_LEFTCTRL, KEY_V, KEY_GRAVE,
+        KEY_LEFTCTRL, KEY_V, KEY_GRAVE, KEY_LEFTSHIFT,
+        KEY_COMMA, KEY_DOT, KEY_SLASH, KEY_LEFTBRACE, KEY_RO,
+        KEY_APOSTROPHE, KEY_SEMICOLON, KEY_EQUAL,
+        KEY_RIGHTBRACE, KEY_BACKSLASH, KEY_YEN,
+        KEY_ENTER, KEY_LEFTMETA, KEY_UP, KEY_DOWN,
     };
     for (int k : keys) {
         ::ioctl(fd_, UI_SET_KEYBIT, k);
@@ -221,16 +288,32 @@ void UinputDev::close() {
 
 bool UinputDev::sendChar(uint32_t cp) {
     if (fd_ < 0) return false;
-    if (cp == 0x0008) {
-        emitKey(KEY_BACKSPACE);
-        return true;
-    }
     return sendCharInternal(cp);
 }
 
 void UinputDev::sendBackspace() {
     if (fd_ < 0) return;
     emitKey(KEY_BACKSPACE);
+}
+
+void UinputDev::sendEnter() {
+    if (fd_ < 0) return;
+    emitKey(KEY_ENTER);
+}
+
+void UinputDev::sendWindow() {
+    if (fd_ < 0) return;
+    emitKey(KEY_LEFTMETA);
+}
+
+void UinputDev::sendArrowUp() {
+    if (fd_ < 0) return;
+    emitKey(KEY_UP);
+}
+
+void UinputDev::sendArrowDown() {
+    if (fd_ < 0) return;
+    emitKey(KEY_DOWN);
 }
 
 void UinputDev::toggleIME() {

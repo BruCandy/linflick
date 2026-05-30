@@ -54,7 +54,7 @@ static void draw123Key(cairo_t *cr, const KeyDef& key, double x, double y, doubl
 
 static void drawModifyKey(cairo_t *cr, double x, double y) {
     double half_h = KEY_H / 2.0;
-    pangoDrawText(cr, "゛゜", x + 7, y + 8, KEY_W, half_h, 13);
+    pangoDrawText(cr, "゛  ゜", x + 4, y + 8, KEY_W, half_h, 15);
     pangoDrawText(cr, "小", x, y + half_h - 8, KEY_W, half_h, 11);
 }
 
@@ -240,8 +240,12 @@ void pangoDrawText(cairo_t *cr, const char *text, double x, double y,
 
 static gboolean onLongPressTimeout(gpointer data) {
     app.press_timer = 0;
-    app.show_candidates  = true;
-    gtk_widget_queue_draw(GTK_WIDGET(data));
+    const KeyDef& key = keysForMode(app.mode)[app.press_row][app.press_col];
+    bool isHenkanKey = (app.mode == MODE_HIRAGANA && key.type == SPACE && app.text != 0);
+    if (key.type == NORMAL || isHenkanKey) {
+        app.show_candidates = true;
+        gtk_widget_queue_draw(GTK_WIDGET(data));
+    }
     return G_SOURCE_REMOVE;
 }
 
@@ -253,6 +257,10 @@ gboolean onButtonPress(GtkWidget *widget, GdkEventButton *event, gpointer) {
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return FALSE;
     if (!isInKey(event->x, event->y, row, col)) return FALSE;
 
+    if (app.press_timer) {
+        g_source_remove(app.press_timer);
+        app.press_timer = 0;
+    }
     app.pressing        = true;
     app.press_row       = row;
     app.press_col       = col;
@@ -261,26 +269,29 @@ gboolean onButtonPress(GtkWidget *widget, GdkEventButton *event, gpointer) {
     app.cur_x           = event->x;
     app.cur_y           = event->y;
     app.show_candidates = false;
+    app.hover_row       = -1;
+    app.hover_col       = -1;
     app.press_timer = g_timeout_add(400, onLongPressTimeout, widget);
     gtk_widget_queue_draw(widget);
     return TRUE;
 }
 
 gboolean onMotion(GtkWidget *widget, GdkEventMotion *event, gpointer) {
-    int col = (int)(event->x / KEY_W);
-    int row = (int)((event->y - TOP_OFFSET) / KEY_H);
-    if (isMergedEnter(row, col)) row = ROWS - 2;
-    int new_hover_row = (row >= 0 && row < ROWS && col >= 0 && col < COLS
-                        && isInKey(event->x, event->y, row, col))
-                        ? row : -1;
-    int new_hover_col = (new_hover_row >= 0) ? col : -1;
-    if (new_hover_row != app.hover_row || new_hover_col != app.hover_col) {
-        app.hover_row = new_hover_row;
-        app.hover_col = new_hover_col;
-        gtk_widget_queue_draw(widget);
+    if (!app.pressing) {
+        int col = (int)(event->x / KEY_W);
+        int row = (int)((event->y - TOP_OFFSET) / KEY_H);
+        if (isMergedEnter(row, col)) row = ROWS - 2;
+        int new_hover_row = (row >= 0 && row < ROWS && col >= 0 && col < COLS
+                            && isInKey(event->x, event->y, row, col))
+                            ? row : -1;
+        int new_hover_col = (new_hover_row >= 0) ? col : -1;
+        if (new_hover_row != app.hover_row || new_hover_col != app.hover_col) {
+            app.hover_row = new_hover_row;
+            app.hover_col = new_hover_col;
+            gtk_widget_queue_draw(widget);
+        }
+        return FALSE;
     }
-
-    if (!app.pressing) return FALSE;
     app.cur_x = event->x;
     app.cur_y = event->y;
     if (app.press_timer) {
@@ -388,13 +399,29 @@ gboolean onDraw(GtkWidget*, cairo_t *cr, gpointer) {
     if (app.pressing) {
         const KeyDef key = keysForMode(app.mode)[app.press_row][app.press_col];
         if (app.show_candidates) {
-            drawCandidateOutput(cr, app.press_row, app.press_col, key, live_dir);
+            if (app.mode == MODE_HIRAGANA && key.type == SPACE && app.text != 0) {
+                KeyDef tmp = key;
+                tmp.chars[UP]     = "↑";
+                tmp.chars[DOWN]   = "↓";
+                tmp.chars[CENTER] = "変換";
+                drawCandidateOutput(cr, app.press_row, app.press_col, tmp, live_dir);
+            } else {
+                drawCandidateOutput(cr, app.press_row, app.press_col, key, live_dir);
+            }
         } else {
-            const char *ch = key.chars[live_dir];
-            if (ch && ch != ACT_MODIFY) {
-                double kx = app.press_col * KEY_W + KEY_W / 2.0;
-                double ky = app.press_row * KEY_H + KEY_H / 2.0 + TOP_OFFSET;
-                drawCallout(cr, kx, ky, key, live_dir);
+            double kx = app.press_col * KEY_W + KEY_W / 2.0;
+            double ky = app.press_row * KEY_H + KEY_H / 2.0 + TOP_OFFSET;
+            if (app.mode == MODE_HIRAGANA && key.type == SPACE && app.text != 0 &&
+                (live_dir == UP || live_dir == DOWN)) {
+                KeyDef tmp = key;
+                tmp.chars[UP]   = "↑";
+                tmp.chars[DOWN] = "↓";
+                drawCallout(cr, kx, ky, tmp, live_dir);
+            } else {
+                const char *ch = key.chars[live_dir];
+                if (ch && ch[0] != ACT_MODIFY[0]) {
+                    drawCallout(cr, kx, ky, key, live_dir);
+                }
             }
         }
     }

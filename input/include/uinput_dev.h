@@ -12,6 +12,10 @@ public:
 
     bool sendChar(uint32_t cp);
     void sendBackspace();
+    void sendEnter();
+    void sendWindow();
+    void sendArrowUp();
+    void sendArrowDown();
     void sendPaste();
     void toggleIME();
 
